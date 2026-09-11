@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUNCTION QUEST: THE FUNCTION ARENA</title>
+    <!-- Google Fonts & Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'arena-bg': '#0B0F19',
+                        'arena-card': '#161F33',
+                        'arena-border': '#2A3859',
+                        'electric-blue': '#00F0FF',
+                        'neon-purple': '#A855F7',
+                        'neon-magenta': '#FF007A',
+                        'neon-orange': '#FF7A00',
+                        'neon-yellow': '#FFD600',
+                        'emerald-glow': '#10B981',
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0B0F19;
+            color: #F3F4F6;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+        }
+        .glow-text {
+            text-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
+        }
+        .glow-box {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.25);
+        }
+        .glow-box-cyan {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+        }
+        .glass-card {
+            background: rgba(22, 31, 51, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(42, 56, 89, 0.8);
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .animate-shake { animation: shake 0.4s ease-in-out; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-electric-blue selection:text-black">
+
+    <!-- TOP HEADER / HUD (Hidden on Welcome Screen) -->
+    <header id="hud" class="hidden sticky top-0 z-50 glass-card px-4 py-3 border-b border-arena-border">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="font-orbitron font-extrabold text-lg text-electric-blue tracking-wider">FUNCTION ARENA</span>
+                <span id="hud-user" class="text-xs px-2 py-1 bg-arena-border rounded-md text-gray-300 font-semibold">Guest</span>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="flex items-center gap-4 text-xs md:text-sm font-bold">
+                <div class="flex items-center gap-1 text-neon-yellow">
+                    <span>⚡ XP:</span>
+                    <span id="hud-xp" class="font-orbitron text-base">0</span>
+                </div>
+                <div class="flex items-center gap-1 text-electric-blue">
+                    <span>🔥 Streak:</span>
+                    <span id="hud-streak" class="font-orbitron text-base">0</span>
+                </div>
+                <div class="flex items-center gap-1 text-emerald-glow">
+                    <span>🎯 Acc:</span>
+                    <span id="hud-acc" class="font-orbitron text-base">100%</span>
+                </div>
+            </div>
+
+            <!-- Sound Toggle & Dashboard Link -->
+            <div class="flex items-center gap-2">
+                <button onclick="toggleAudio()" id="sound-btn" class="px-2.5 py-1 bg-arena-border hover:bg-gray-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+                    🔊 <span id="sound-status">ON</span>
+                </button>
+                <button onclick="openTeacherDashboard()" class="px-2.5 py-1 bg-neon-purple/20 border border-neon-purple/50 text-neon-purple hover:bg-neon-purple hover:text-white rounded-lg text-xs font-semibold transition">
+                    👑 Teacher Panel
+                </button>
+            </div>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-800 h-1.5 mt-2 rounded-full overflow-hidden">
+            <div id="hud-progress" class="bg-gradient-to-r from-electric-blue via-neon-purple to-neon-magenta h-full w-0 transition-all duration-500"></div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="w-full max-w-4xl">
+
+            <!-- 1. LANDING / OPENING SCREEN -->
+            <section id="screen-welcome" class="text-center py-8">
+                <div class="inline-block p-2 px-4 bg-neon-purple/20 border border-neon-purple/40 rounded-full text-neon-purple text-xs font-bold tracking-widest uppercase mb-4 animate-pulse">
+                    🎮 Interactive Math Arena
+                </div>
+                <h1 class="font-orbitron text-4xl md:text-6xl font-black tracking-tight mb-2 text-transparent bg-clip-text bg-gradient-to-r from-electric-blue via-neon-purple to-neon-magenta glow-text">
+                    FUNCTION QUEST
+                </h1>
+                <h2 class="font-orbitron text-lg md:text-2xl text-gray-300 font-bold mb-6 tracking-wide">
+                    THE FUNCTION ARENA
+                </h2>
+                <p class="text-gray-400 max-w-lg mx-auto text-sm md:text-base mb-8 italic">
+                    “Master the Function. Conquer the Arena.”
+                </p>
+                <button onclick="playSFX('click'); goToScreen('screen-identity')" class="px-8 py-4 bg-gradient-to-r from-electric-blue to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-orbitron font-black text-lg rounded-2xl shadow-lg glow-box-cyan transform hover:-translate-y-1 transition duration-200">
+                    ▶️ START QUEST
+                </button>
+            </section>
+
+            <!-- 2. STUDENT IDENTITY FORM -->
+            <section id="screen-identity" class="hidden">
+                <div class="glass-card rounded-3xl p-6 md:p-8 max-w-md mx-auto shadow-2xl">
+                    <h3 class="font-orbitron text-2xl font-bold text-electric-blue text-center mb-6">PLAYER IDENTITY</h3>
+                    <form id="identity-form" onsubmit="submitIdentity(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-300 mb-1">Nama Lengkap *</label>
+                            <input type="text" id="input-nama" required placeholder="Contoh: Alex Pratama" class="w-full px-4 py-3 bg-arena-bg border border-arena-border rounded-xl text-white focus:outline-none focus:border-electric-blue transition">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-300 mb-1">Kelas *</label>
+                                <input type="text" id="input-kelas" required placeholder="XI MIPA 1" class="w-full px-4 py-3 bg-arena-bg border border-arena-border rounded-xl text-white focus:outline-none focus:border-electric-blue transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-300 mb-1">No. Absen *</label>
+                                <input type="number" id="input-absen" required placeholder="05" class="w-full px-4 py-3 bg-arena-bg border border-arena-border rounded-xl text-white focus:outline-none focus:border-electric-blue transition">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-neon-purple to-neon-magenta hover:from-purple-500 hover:to-pink-500 text-white font-orbitron font-bold rounded-xl shadow-lg transition duration-200 mt-2">
+                            ENTER ARENA 🚀
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- 3. MISSION HUB / QUESTION ARENA -->
+            <section id="screen-arena" class="hidden">
+                <div class="glass-card rounded-3xl p-6 md:p-8 shadow-2xl">
+                    <!-- Mission Header -->
+                    <div class="flex flex-wrap items-center justify-between border-b border-arena-border pb-4 mb-6 gap-2">
+                        <div>
+                            <span id="mission-tag" class="text-xs font-bold text-electric-blue uppercase tracking-wider">MISSION 1</span>
+                            <h3 id="mission-title" class="font-orbitron text-xl font-bold text-white">FUNCTION RECALL</h3>
+                        </div>
+                        <div id="difficulty-badge" class="hidden px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-gray-800 text-gray-300 border border-gray-700">
+                            NORMAL
+                        </div>
+                    </div>
+
+                    <!-- Question Container -->
+                    <div id="question-box" class="space-y-6">
+                        <div id="question-text" class="text-base md:text-lg font-semibold text-gray-100 leading-relaxed">
+                            Loading question...
+                        </div>
+
+                        <!-- Visual Area (For diagrams/math rendering) -->
+                        <div id="question-visual" class="hidden bg-arena-bg/60 border border-arena-border p-4 rounded-2xl text-center"></div>
+
+                        <!-- Options / Answer Buttons -->
+                        <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Feedback Banner -->
+                    <div id="feedback-box" class="hidden mt-6 p-4 rounded-2xl border transition-all duration-300">
+                        <div id="feedback-title" class="font-orbitron font-bold text-sm mb-1"></div>
+                        <div id="feedback-text" class="text-xs md:text-sm text-gray-200"></div>
+                        <button id="next-btn" onclick="nextQuestion()" class="mt-3 px-5 py-2 bg-electric-blue text-black font-orbitron font-bold text-xs rounded-lg hover:bg-cyan-300 transition">
+                            CONTINUE ▶
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. CHECKPOINT / BREAK SCREEN -->
+            <section id="screen-checkpoint" class="hidden text-center py-6">
+                <div class="glass-card rounded-3xl p-8 max-w-lg mx-auto shadow-2xl border border-electric-blue/40">
+                    <div class="text-4xl mb-2">🏁</div>
+                    <h2 class="font-orbitron text-2xl font-extrabold text-electric-blue mb-2">CHECKPOINT REACHED!</h2>
+                    <p class="text-xs text-gray-300 mb-6">Kemajuan belajar Anda telah dicatat secara otomatis.</p>
+                    
+                    <div class="grid grid-cols-3 gap-3 bg-arena-bg p-4 rounded-2xl mb-6 border border-arena-border">
+                        <div>
+                            <div class="text-xs text-gray-400">Total XP</div>
+                            <div id="cp-xp" class="font-orbitron text-xl font-bold text-neon-yellow">0</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Akurasi</div>
+                            <div id="cp-acc" class="font-orbitron text-xl font-bold text-emerald-glow">0%</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Soal Selesai</div>
+                            <div id="cp-count" class="font-orbitron text-xl font-bold text-electric-blue">0</div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button onclick="continueQuestFromCP()" class="flex-1 py-3.5 bg-electric-blue hover:bg-cyan-300 text-black font-orbitron font-bold text-sm rounded-xl transition">
+                            SAVE & CONTINUE ▶
+                        </button>
+                        <button onclick="enterBreakMode()" class="px-5 py-3.5 bg-arena-border hover:bg-gray-700 text-gray-300 font-orbitron font-bold text-sm rounded-xl transition">
+                            ☕ BREAK MODE
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. BREAK MODE SCREEN -->
+            <section id="screen-break" class="hidden text-center py-10">
+                <div class="glass-card rounded-3xl p-8 max-w-md mx-auto shadow-2xl">
+                    <div class="text-5xl mb-4">☕</div>
+                    <h2 class="font-orbitron text-2xl font-bold text-neon-yellow mb-2">BREAK TIME</h2>
+                    <p class="text-sm text-gray-300 mb-6">Istirahatlah sejenak. Kemajuan Anda di arena tersimpan dengan aman.</p>
+                    <button onclick="continueQuestFromCP()" class="px-8 py-3.5 bg-gradient-to-r from-electric-blue to-neon-purple text-black font-orbitron font-bold text-sm rounded-xl hover:opacity-90 transition glow-box-cyan">
+                        ▶️ CONTINUE QUEST
+                    </button>
+                </div>
+            </section>
+
+            <!-- 6. FINAL RESULT / RANK SCREEN -->
+            <section id="screen-final" class="hidden text-center py-6">
+                <div class="glass-card rounded-3xl p-8 max-w-xl mx-auto shadow-2xl border border-neon-purple/50">
+                    <div class="text-5xl mb-2">🎉</div>
+                    <h2 class="font-orbitron text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-electric-blue via-neon-purple to-neon-magenta mb-1">
+                        QUEST COMPLETE!
+                    </h2>
+                    <p class="text-xs text-gray-400 mb-6">Anda telah menyelesaikan seluruh tantangan The Function Arena!</p>
+
+                    <!-- Rank Card -->
+                    <div class="bg-gradient-to-br from-arena-bg to-arena-card p-6 rounded-2xl border border-neon-purple/40 mb-6 relative overflow-hidden">
+                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Peringkat Capaian</div>
+                        <div id="final-rank" class="font-orbitron text-2xl md:text-3xl font-black text-neon-yellow glow-text my-2">FUNCTION MASTER</div>
+                        <div id="final-badge" class="text-4xl my-2">🏆</div>
+                        <div id="final-user-info" class="text-xs text-gray-300 font-semibold">Nama (Kelas)</div>
+                    </div>
+
+                    <!-- Summary Stats -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-arena-bg p-4 rounded-2xl mb-6 border border-arena-border text-center">
+                        <div>
+                            <div class="text-[10px] text-gray-400 uppercase">Total XP</div>
+                            <div id="final-xp" class="font-orbitron text-lg font-bold text-neon-yellow">0</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-400 uppercase">Akurasi</div>
+                            <div id="final-acc" class="font-orbitron text-lg font-bold text-emerald-glow">0%</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-400 uppercase">Jawaban Benar</div>
+                            <div id="final-correct" class="font-orbitron text-lg font-bold text-electric-blue">0/0</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-400 uppercase">Waktu Selesai</div>
+                            <div id="final-time" class="font-orbitron text-lg font-bold text-neon-magenta">00:00</div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button onclick="restartGame()" class="flex-1 py-3 bg-arena-border hover:bg-gray-700 text-white font-orbitron font-bold text-xs rounded-xl transition">
+                            🔄 RESTART ARENA
+                        </button>
+                        <button onclick="openTeacherDashboard()" class="flex-1 py-3 bg-neon-purple hover:bg-purple-600 text-white font-orbitron font-bold text-xs rounded-xl transition">
+                            👑 LEADERBOARD
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. TEACHER DASHBOARD MODAL/SCREEN -->
+            <section id="screen-dashboard" class="hidden">
+                <div class="glass-card rounded-3xl p-6 md:p-8 shadow-2xl">
+                    <div class="flex items-center justify-between border-b border-arena-border pb-4 mb-6">
+                        <div>
+                            <h3 class="font-orbitron text-xl font-bold text-electric-blue">👑 TEACHER DASHBOARD</h3>
+                            <p class="text-xs text-gray-400">Ringkasan hasil belajar & analisis learning gap siswa</p>
+                        </div>
+                        <button onclick="closeTeacherDashboard()" class="px-3 py-1.5 bg-arena-border hover:bg-gray-700 text-gray-300 text-xs font-bold rounded-lg transition">
+                            ✖ Tutup
+                        </button>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-arena-bg p-4 rounded-xl border border-arena-border">
+                            <div class="text-xs text-gray-400">Total Siswa</div>
+                            <div id="dash-total-siswa" class="font-orbitron text-2xl font-bold text-electric-blue">0</div>
+                        </div>
+                        <div class="bg-arena-bg p-4 rounded-xl border border-arena-border">
+                            <div class="text-xs text-gray-400">Rata-Rata XP</div>
+                            <div id="dash-avg-xp" class="font-orbitron text-2xl font-bold text-neon-yellow">0</div>
+                        </div>
+                        <div class="bg-arena-bg p-4 rounded-xl border border-arena-border">
+                            <div class="text-xs text-gray-400">Rata-Rata Akurasi</div>
+                            <div id="dash-avg-acc" class="font-orbitron text-2xl font-bold text-emerald-glow">0%</div>
+                        </div>
+                        <div class="bg-arena-bg p-4 rounded-xl border border-arena-border">
+                            <div class="text-xs text-gray-400">Top Learner</div>
+                            <div id="dash-top-score" class="font-orbitron text-lg font-bold text-neon-magenta truncate">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Leaderboard Table -->
+                    <h4 class="font-orbitron text-sm font-bold text-gray-200 mb-3">🏆 LEADERBOARD SISWA</h4>
+                    <div class="overflow-x-auto bg-arena-bg rounded-xl border border-arena-border mb-6">
+                        <table class="w-full text-left text-xs text-gray-300">
+                            <thead class="bg-arena-card text-gray-400 font-orbitron uppercase border-b border-arena-border">
+                                <tr>
+                                    <th class="p-3">#</th>
+                                    <th class="p-3">Nama</th>
+                                    <th class="p-3">Kelas</th>
+                                    <th class="p-3">XP</th>
+                                    <th class="p-3">Akurasi</th>
+                                    <th class="p-3">Rank</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body">
+                                <tr><td colspan="6" class="p-4 text-center text-gray-500">Belum ada data tersimpan.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="text-center py-4 text-xs text-gray-500 border-t border-arena-border/40">
+        FUNCTION QUEST: THE FUNCTION ARENA &copy; 2026 — Matematika SMA Kelas XI
+    </footer>
+
+    <!-- GAME ENGINE SCRIPT -->
+    <script>
+        /* ==========================================================================
+           1. CONFIG & GLOBAL STATE
+           ========================================================================== */
+        // Sediakan URL Google Apps Script Web App Anda di bawah ini jika terhubung ke Google Sheets
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziM0p7ASBwWcpdW4SsRX_WL7ByaeIOg7994r2OL_weZzBH9FKdplmE_3xdysJ0MR2E6g/exec"; 
+
+        let soundEnabled = true;
+
+        let player = {
+            nama: "",
+            kelas: "",
+            absen: "",
+            xp: 0,
+            streak: 0,
+            totalCorrect: 0,
+            totalAnswered: 0,
+            startTime: null
+        };
+
+        let currentMissionIdx = 0; // 0: M1, 1: M2, 2: M3, 3: M4, 4: Boss Battle
+        let currentQuestionIdx = 0;
+        let activeQuestions = [];
+        let timerInterval = null;
+        let timeLeft = 0;
+
+        /* ==========================================================================
+           2. QUESTION BANK (40 SOAL VARIATIF & INTERAKTIF - C2 s/d C5)
+           ========================================================================== */
+        const QUESTION_BANK = {
+            // MISSION 1: FUNCTION RECALL (8 Soal)
+            m1: [
+                {
+                    id: "m1_1",
+                    text: "Manakah di antara konsep berikut yang mewakili definisi dari RELASI?",
+                    options: [
+                        "Aturan yang memasangkan anggota himpunan asal ke tepat satu anggota himpunan kawan.",
+                        "Hubungan atau aturan yang memasangkan anggota himpunan satu ke himpunan lainnya tanpa batasan khusus.",
+                        "Himpunan semua hasil pasangan terurut.",
+                        "Aturan yang hanya berlaku untuk bilangan real."
+                    ],
+                    correct: 1,
+                    feedback: "Tepat! Relasi adalah hubungan umum antar anggota dua himpunan tanpa syarat tunggal."
+                },
+                {
+                    id: "m1_2",
+                    text: "Suatu relasi khusus disebut FUNGSI apabila...",
+                    options: [
+                        "Setiap anggota himpunan asal (domain) memiliki tepat satu pasangan di himpunan kawan (kodomain).",
+                        "Setiap anggota kodomain harus habis terpasang.",
+                        "Satu anggota domain boleh memiliki dua atau lebih pasangan di kodomain.",
+                        "Domain dan kodomain memiliki jumlah anggota yang sama."
+                    ],
+                    correct: 0,
+                    feedback: "Benar sekali! Syarat utama fungsi adalah setiap input (domain) dipasangkan ke tepat SATU output."
+                },
+                {
+                    id: "m1_3",
+                    text: "Dalam fungsi f: A → B, seluruh anggota dari himpunan A disebut...",
+                    options: ["Kodomain", "Domain (Daerah Asal)", "Range (Daerah Hasil)", "Relasi"],
+                    correct: 1,
+                    feedback: "Tepat! Domain adalah seluruh elemen himpunan daerah asal."
+                },
+                {
+                    id: "m1_4",
+                    text: "Seluruh anggota himpunan daerah kawan (B) pada relasi f: A → B dinamakan...",
+                    options: ["Domain", "Range", "Kodomain", "Notasi"],
+                    correct: 2,
+                    feedback: "Benar! Himpunan B adalah Kodomain."
+                },
+                {
+                    id: "m1_5",
+                    text: "Himpunan semua nilai output/pasangan yang benar-benar terpilih di daerah kawan disebut...",
+                    options: ["Domain", "Kodomain", "Range (Daerah Hasil)", "Notasi Fungsi"],
+                    correct: 2,
+                    feedback: "Tepat! Range adalah himpunan elemen kodomain yang memiliki pasangan dari domain."
+                },
+                {
+                    id: "m1_6",
+                    text: "Diberikan relasi pasangan berurutan: {(1, 2), (2, 3), (3, 4)}. Domain dari relasi tersebut adalah...",
+                    options: ["{2, 3, 4}", "{1, 2, 3}", "{1, 2, 3, 4}", "{(1,2)}"],
+                    correct: 1,
+                    feedback: "Tepat! Domain diambil dari elemen pertama setiap pasangan: {1, 2, 3}."
+                },
+                {
+                    id: "m1_7",
+                    text: "Diberikan relasi pasangan berurutan: {(1, 2), (2, 3), (3, 4)}. Range dari relasi tersebut adalah...",
+                    options: ["{1, 2, 3}", "{2, 3, 4}", "{1, 2, 3, 4}", "{2, 4}"],
+                    correct: 1,
+                    feedback: "Tepat! Range diambil dari elemen kedua setiap pasangan: {2, 3, 4}."
+                },
+                {
+                    id: "m1_8",
+                    text: "Apakah relasi {(1,a), (1,b), (2,c)} merupakan fungsi?",
+                    options: [
+                        "Ya, karena semua memiliki pasangan.",
+                        "Tidak, karena elemen '1' pada domain dipasangkan dengan dua elemen berbeda ('a' dan 'b').",
+                        "Ya, karena elemen '1' sangat aktif.",
+                        "Tidak dapat ditentukan."
+                    ],
+                    correct: 1,
+                    feedback: "Tepat! Input '1' mendua, sehingga relasi ini BUKAN fungsi."
+                }
+            ],
+
+            // MISSION 2: FUNCTION DETECTIVE (12 Soal)
+            m2: [
+                {
+                    id: "m2_1",
+                    text: "Detektif, periksa pasangan berurutan ini: {(1,3), (2,5), (3,7), (4,9)}. Apakah ini FUNGSI?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 0,
+                    feedback: "Correct! Every element in the domain has exactly one output."
+                },
+                {
+                    id: "m2_2",
+                    text: "Periksa relasi ini: {(2,4), (2,8), (3,9), (4,16)}. Apakah ini FUNGSI?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 1,
+                    feedback: "Not a function! Input '2' is paired with two different outputs (4 and 8)."
+                },
+                {
+                    id: "m2_3",
+                    text: "Periksa Diagram Panah: A = {a, b, c} → B = {1, 2}. Jika panah meluncur dari: a→1, b→1, c→2. Apakah ini FUNGSI?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 0,
+                    feedback: "Correct! Walaupun output '1' punya dua cabang masuk, setiap input di domain tepat punya 1 panah keluar."
+                },
+                {
+                    id: "m2_4",
+                    text: "Periksa Diagram Panah: A = {x, y} → B = {1, 2, 3}. Panah: x→1, x→2, y→3. Apakah ini FUNGSI?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 1,
+                    feedback: "Not a function! Input 'x' bercabang ke 1 dan 2."
+                },
+                {
+                    id: "m2_5",
+                    text: "Grafik lingkaran x² + y² = 25. Jika diuji dengan 'Vertical Line Test' (Garis Tegak), apakah grafik ini menggambarkan FUNGSI y = f(x)?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 1,
+                    feedback: "Not a function! Garis vertikal memotong lingkaran di dua titik sekaligus."
+                },
+                {
+                    id: "m2_6",
+                    text: "Grafik garis lurus y = 3x - 2. Jika diuji dengan Garis Tegak, apakah ini FUNGSI?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 0,
+                    feedback: "Correct! Setiap garis vertikal hanya memotong grafik tepat di satu titik."
+                },
+                {
+                    id: "m2_7",
+                    text: "Tabel Nilai: (x: -1, 0, 1, 2) → (y: 5, 5, 5, 5). Apakah hubungan tabel ini FUNGSI?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 0,
+                    feedback: "Correct! Ini adalah fungsi konstan. Semua x menghasilkan y yang sama, tapi tiap x hanya punya 1 nilai y."
+                },
+                {
+                    id: "m2_8",
+                    text: "Tabel Nilai: (x: 4, 4, 9, 9) → (y: 2, -2, 3, -3). Apakah ini FUNGSI?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 1,
+                    feedback: "Not a function! Input x=4 menghasilkan dua output berbeda (2 dan -2)."
+                },
+                {
+                    id: "m2_9",
+                    text: "Aturan Fungsi: f(x) = ±√x untuk x ≥ 0. Apakah aturan ini merupakan FUNGSI tunggal?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 1,
+                    feedback: "Not a function! Simbol ± menghasilkan dua nilai output sekaligus untuk satu input x."
+                },
+                {
+                    id: "m2_10",
+                    text: "Grafik Parabola terbuka ke atas y = x². Apakah ini FUNGSI?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 0,
+                    feedback: "Correct! Memenuhi Vertical Line Test."
+                },
+                {
+                    id: "m2_11",
+                    text: "Grafik Parabola terbuka ke kanan x = y². Apakah y merupakan FUNGSI dari x?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 1,
+                    feedback: "Not a function! Garis vertikal akan memotong bagian atas dan bawah parabola."
+                },
+                {
+                    id: "m2_12",
+                    text: "Relasi: Setiap siswa di kelas XI dipasangkan dengan Nomor Induk Siswa (NIS) masing-masing. Apakah ini FUNGSI?",
+                    options: ["FUNCTION", "NOT FUNCTION"],
+                    correct: 0,
+                    feedback: "Correct! Setiap siswa pasti memiliki tepat satu NIS."
+                }
+            ],
+
+            // MISSION 3: DOMAIN HUNTER (10 Soal)
+            m3: [
+                {
+                    id: "m3_1",
+                    text: "Tentukan domain alamiah (Domain) dari fungsi linier f(x) = 2x + 3.",
+                    options: ["x ≠ 0", "Semua x ∈ Real", "x > -3/2", "x ≥ 0"],
+                    correct: 1,
+                    feedback: "Tepat! Fungsi linier terdefinisi untuk seluruh bilangan real (-∞, ∞)."
+                },
+                {
+                    id: "m3_2",
+                    text: "Tentukan nilai x yang TIDAK diperbolehkan untuk fungsi rasional f(x) = 1 / (x - 3).",
+                    options: ["x = 0", "x = 3", "x = -3", "x = 1"],
+                    correct: 1,
+                    feedback: "Tepat! Pembagi tidak boleh bernilai 0. Jadi x - 3 ≠ 0 => x ≠ 3."
+                },
+                {
+                    id: "m3_3",
+                    text: "Domain alamiah dari fungsi rasional f(x) = 5 / (x + 2) adalah...",
+                    options: ["{x | x ≠ -2, x ∈ R}", "{x | x ≠ 2, x ∈ R}", "{x | x > -2, x ∈ R}", "{x | x ∈ R}"],
+                    correct: 0,
+                    feedback: "Benar! Penyebut x + 2 tidak boleh nol, sehingga x ≠ -2."
+                },
+                {
+                    id: "m3_4",
+                    text: "Agar fungsi akar f(x) = √(x + 2) terdefinisi pada bilangan real, syarat dalam akar adalah...",
+                    options: ["x + 2 > 0", "x + 2 ≥ 0", "x + 2 ≠ 0", "x + 2 < 0"],
+                    correct: 1,
+                    feedback: "Tepat! Nilai di dalam akar pangkat dua harus non-negatif (≥ 0)."
+                },
+                {
+                    id: "m3_5",
+                    text: "Berdasarkan syarat x + 2 ≥ 0, domain dari f(x) = √(x + 2) adalah...",
+                    options: ["x ≥ -2", "x ≥ 2", "x ≤ -2", "x ≠ -2"],
+                    correct: 0,
+                    feedback: "Tepat! x + 2 ≥ 0 menghasilkan x ≥ -2."
+                },
+                {
+                    id: "m3_6",
+                    text: "Tentukan domain dari f(x) = √(5 - x).",
+                    options: ["x ≥ 5", "x ≤ 5", "x ≠ 5", "x > 5"],
+                    correct: 1,
+                    feedback: "Tepat! 5 - x ≥ 0 => -x ≥ -5 => x ≤ 5."
+                },
+                {
+                    id: "m3_7",
+                    text: "Hunter Level Up! Tentukan domain dari f(x) = √(x - 1) / (x - 3). Gabungkan syarat akar dan pecahan!",
+                    options: [
+                        "x ≥ 1 dan x ≠ 3",
+                        "x > 1 dan x ≠ 3",
+                        "x ≥ 3",
+                        "Semua x ∈ Real"
+                    ],
+                    correct: 0,
+                    feedback: "Luar biasa! Pembilang butuh x - 1 ≥ 0 (x ≥ 1) dan penyebut x - 3 ≠ 0 (x ≠ 3)."
+                },
+                {
+                    id: "m3_8",
+                    text: "Tentukan domain dari f(x) = 1 / √(x - 4). (Catatan: Akar berada di penyebut!)",
+                    options: ["x ≥ 4", "x > 4", "x ≠ 4", "x < 4"],
+                    correct: 1,
+                    feedback: "Cerdas! Karena di penyebut, x - 4 tidak boleh 0, sehingga syarat menjadi murni x - 4 > 0 => x > 4."
+                },
+                {
+                    id: "m3_9",
+                    text: "Manakah fungsi berikut yang memiliki domain seluruh bilangan real TANPA ada pengecualian?",
+                    options: ["f(x) = (x + 1)/(x - 1)", "f(x) = √(x - 9)", "f(x) = x² - 4x + 7", "f(x) = log(x)"],
+                    correct: 2,
+                    feedback: "Tepat! Fungsi polinomial/kuadrat tidak memiliki batasan pembagian nol atau akar negatif."
+                },
+                {
+                    id: "m3_10",
+                    text: "Jika f(x) = |x - 2|, apakah ada batasan nilai x untuk domainnya?",
+                    options: [
+                        "Ada, x harus ≥ 2",
+                        "Ada, x ≠ 2",
+                        "Tidak ada, Domain = Semua x ∈ Real",
+                        "Ada, x > 0"
+                    ],
+                    correct: 2,
+                    feedback: "Tepat! Fungsi nilai mutlak terdefinisi untuk seluruh nilai x real."
+                }
+            ],
+
+            // MISSION 4: FUNCTION CLASSIFIER (8 Soal Klasifikasi)
+            m4: [
+                {
+                    id: "m4_1",
+                    text: "Klasifikasikan bentuk fungsi ini: f(x) = 3x - 7",
+                    options: ["LINEAR", "QUADRATIC", "RATIONAL", "EXPONENTIAL"],
+                    correct: 0,
+                    feedback: "Tepat! Pangkat tertinggi variabel x adalah 1 (Fungsi Linear)."
+                },
+                {
+                    id: "m4_2",
+                    text: "Klasifikasikan bentuk fungsi ini: f(x) = 2x² - 5x + 3",
+                    options: ["LINEAR", "QUADRATIC", "ABSOLUTE VALUE", "LOGARITHMIC"],
+                    correct: 1,
+                    feedback: "Tepat! Bentuk ax² + bx + c adalah Fungsi Kuadrat."
+                },
+                {
+                    id: "m4_3",
+                    text: "Klasifikasikan bentuk fungsi ini: f(x) = (2x + 1) / (x - 4)",
+                    options: ["RATIONAL", "IRRATIONAL", "STEP", "PIECEWISE"],
+                    correct: 0,
+                    feedback: "Tepat! Fungsi berupa rasio dua polinomial adalah Fungsi Rasional."
+                },
+                {
+                    id: "m4_4",
+                    text: "Klasifikasikan bentuk fungsi ini: f(x) = √(3x - 2)",
+                    options: ["RATIONAL", "IRRATIONAL / AKAR", "ABSOLUTE VALUE", "EXPONENTIAL"],
+                    correct: 1,
+                    feedback: "Tepat! Variabel x di dalam tanda akar dinamakan Fungsi Irasional/Akar."
+                },
+                {
+                    id: "m4_5",
+                    text: "Klasifikasikan bentuk fungsi ini: f(x) = |2x - 5|",
+                    options: ["ABSOLUTE VALUE", "PIECEWISE", "STEP", "QUADRATIC"],
+                    correct: 0,
+                    feedback: "Tepat! Menggunakan tanda mutlak |...| dinamakan Fungsi Nilai Mutlak."
+                },
+                {
+                    id: "m4_6",
+                    text: "Klasifikasikan bentuk fungsi ini: f(x) = 3ˣ⁺¹",
+                    options: ["EXPONENTIAL", "LOGARITHMIC", "LINEAR", "STEP"],
+                    correct: 0,
+                    feedback: "Tepat! Variabel x berada pada eksponen/pangkat (Fungsi Eksponen)."
+                },
+                {
+                    id: "m4_7",
+                    text: "Klasifikasikan bentuk fungsi ini: f(x) = ⁵log(x - 2)",
+                    options: ["LOGARITHMIC", "EXPONENTIAL", "RATIONAL", "IRRATIONAL"],
+                    correct: 0,
+                    feedback: "Tepat! Ini adalah Fungsi Logaritma."
+                },
+                {
+                    id: "m4_8",
+                    text: "Klasifikasikan fungsi ini: f(x) = { x+1 jika x>0 ; -x jika x≤0 }",
+                    options: ["PIECEWISE", "STEP", "QUADRATIC", "LOGARITHMIC"],
+                    correct: 0,
+                    feedback: "Tepat! Fungsi yang didefinisikan dengan beberapa sub-fungsi pada interval berbeda adalah Fungsi Piecewise (Sepenggal)."
+                }
+            ],
+
+            // BOSS BATTLE (15 Soal Campuran Ber-Timer & Tingkat Kesulitan)
+            boss: [
+                {
+                    id: "b_1",
+                    diff: "NORMAL",
+                    xpVal: 150,
+                    time: 30,
+                    text: "[BOSS 1] Manakah di antara berikut yang MERUPAKAN fungsi?",
+                    options: ["{(1,2), (1,3), (1,4)}", "{(1,2), (2,2), (3,2)}", "{(2,1), (2,5), (3,6)}", "x² + y² = 9"],
+                    correct: 1,
+                    feedback: "Hebat! Beberapa input berbeda boleh menghasilkan output yang sama (2)."
+                },
+                {
+                    id: "b_2",
+                    diff: "NORMAL",
+                    xpVal: 150,
+                    time: 30,
+                    text: "[BOSS 2] Domain dari f(x) = 7 / (2x - 6) adalah...",
+                    options: ["x ≠ 3", "x ≠ 6", "x > 3", "x ≠ 0"],
+                    correct: 0,
+                    feedback: "Tepat! 2x - 6 ≠ 0 => 2x ≠ 6 => x ≠ 3."
+                },
+                {
+                    id: "b_3",
+                    diff: "HARD",
+                    xpVal: 250,
+                    time: 40,
+                    text: "[BOSS 3] Domain dari f(x) = √(x² - 9) adalah...",
+                    options: ["x ≥ 3 atau x ≤ -3", "-3 ≤ x ≤ 3", "x ≥ 9", "x ≠ ±3"],
+                    correct: 0,
+                    feedback: "Luar biasa! x² - 9 ≥ 0 diuji pada garis bilangan menghasilkan x ≤ -3 atau x ≥ 3."
+                },
+                {
+                    id: "b_4",
+                    diff: "HARD",
+                    xpVal: 250,
+                    time: 40,
+                    text: "[BOSS 4] Tentukan Range dari fungsi f(x) = x² + 2 untuk domain seluruh x ∈ Real.",
+                    options: ["y ≥ 2", "y ≥ 0", "y ∈ Real", "y ≤ 2"],
+                    correct: 0,
+                    feedback: "Cerdas! Nilai terkecil x² adalah 0, sehingga y terendah adalah 0 + 2 = 2."
+                },
+                {
+                    id: "b_5",
+                    diff: "EXTREME",
+                    xpVal: 400,
+                    time: 50,
+                    text: "[BOSS 5] Diketahui f(x) = |x - 4|. Jika domain dibatasi pada 1 ≤ x ≤ 5, manakah Range yang benar?",
+                    options: ["0 ≤ y ≤ 3", "1 ≤ y ≤ 5", "0 ≤ y ≤ 1", "y ≥ 0"],
+                    correct: 0,
+                    feedback: "Analisis luar biasa! Nilai f(4)=0 (minimum) dan f(1)=|1-4|=3 (maksimum). Range: [0, 3]."
+                },
+                {
+                    id: "b_6",
+                    diff: "NORMAL",
+                    xpVal: 150,
+                    time: 30,
+                    text: "[BOSS 6] Fungsi g(x) = 2ˣ tergolong sebagai jenis fungsi...",
+                    options: ["Eksponen", "Logaritma", "Polinomial", "Rasional"],
+                    correct: 0,
+                    feedback: "Tepat! Basis konstan dengan variabel di pangkat adalah Fungsi Eksponen."
+                },
+                {
+                    id: "b_7",
+                    diff: "HARD",
+                    xpVal: 250,
+                    time: 40,
+                    text: "[BOSS 7] Syarat domain agar fungsi logaritma f(x) = log(2x - 8) terdefinisi adalah...",
+                    options: ["2x - 8 > 0 (x > 4)", "2x - 8 ≥ 0 (x ≥ 4)", "2x - 8 ≠ 0", "x > 0"],
+                    correct: 0,
+                    feedback: "Tepat! Numerus logaritma harus MURNI positif (> 0)."
+                },
+                {
+                    id: "b_8",
+                    diff: "NORMAL",
+                    xpVal: 150,
+                    time: 30,
+                    text: "[BOSS 8] Manakah grafik yang pasti BUKAN merupakan fungsi y = f(x)?",
+                    options: ["Garis Lurus Miring", "Parabola Terbuka ke Atas", "Lingkaran Penuh", "Kurva Eksponen"],
+                    correct: 2,
+                    feedback: "Tepat! Lingkaran gagal pada Vertical Line Test."
+                },
+                {
+                    id: "b_9",
+                    diff: "HARD",
+                    xpVal: 250,
+                    time: 40,
+                    text: "[BOSS 9] Diketahui f(x) = 3x - 1. Nilai dari f(2) + f(-1) adalah...",
+                    options: ["5 + (-4) = 1", "5 + (-4) = 9", "6 + 4 = 10", "1"],
+                    correct: 0,
+                    feedback: "Tepat! f(2) = 3(2)-1 = 5. f(-1) = 3(-1)-1 = -4. Total = 1."
+                },
+                {
+                    id: "b_10",
+                    diff: "EXTREME",
+                    xpVal: 400,
+                    time: 50,
+                    text: "[BOSS 10] Tentukan domain dari f(x) = √[(x - 2) / (x + 3)].",
+                    options: ["x < -3 atau x ≥ 2", "-3 < x ≤ 2", "x ≥ 2", "x ≠ -3"],
+                    correct: 0,
+                    feedback: "Mastery! Uji tanda pecahan (x-2)/(x+3) ≥ 0 dengan memperhatikan penyebut x ≠ -3."
+                },
+                {
+                    id: "b_11",
+                    diff: "NORMAL",
+                    xpVal: 150,
+                    time: 30,
+                    text: "[BOSS 11] Fungsi tangga (Step Function) sering disebut juga fungsi...",
+                    options: ["Floor / Ceiling Function", "Piecewise Quadratic", "Logaritma", "Akar"],
+                    correct: 0,
+                    feedback: "Tepat! Fungsi tangga membulatkan nilai ke bilangan bulat terdekat (Floor/Ceiling)."
+                },
+                {
+                    id: "b_12",
+                    diff: "HARD",
+                    xpVal: 250,
+                    time: 40,
+                    text: "[BOSS 12] Diketahui f(x) = { 2x jika x < 2 ; x² jika x ≥ 2 }. Berapakah nilai f(2)?",
+                    options: ["4", "2", "8", "Tidak terdefinisi"],
+                    correct: 0,
+                    feedback: "Tepat! Gunakan cabang kedua x ≥ 2: f(2) = 2² = 4."
+                },
+                {
+                    id: "b_13",
+                    diff: "NORMAL",
+                    xpVal: 150,
+                    time: 30,
+                    text: "[BOSS 13] Manakah di antara berikut yang merupakan fungsi rasional?",
+                    options: ["f(x) = (x² + 1) / (x - 2)", "f(x) = √(x + 1)", "f(x) = |x|", "f(x) = 2ˣ"],
+                    correct: 0,
+                    feedback: "Tepat! Bentuk pecahan dengan polinomial di pembilang dan penyebut."
+                },
+                {
+                    id: "b_14",
+                    diff: "HARD",
+                    xpVal: 250,
+                    time: 40,
+                    text: "[BOSS 14] Bentuk umum f(x) = a|x - h| + k adalah bentuk umum fungsi...",
+                    options: ["Nilai Mutlak", "Kuadrat", "Rasional", "Eksponen"],
+                    correct: 0,
+                    feedback: "Tepat! Simbol | | menandakan nilai mutlak."
+                },
+                {
+                    id: "b_15",
+                    diff: "EXTREME",
+                    xpVal: 500,
+                    time: 60,
+                    text: "[FINAL BOSS] Jika f(x) = 1 / (x² - 4), ada berapa titik potong/garis vertikal yang TIDAK termasuk dalam domain f(x)?",
+                    options: ["Dua titik (x = 2 dan x = -2)", "Satu titik (x = 4)", "Tidak ada", "Tak hingga"],
+                    correct: 0,
+                    feedback: "CONGRATULATIONS! Pemfaktoran x² - 4 = (x-2)(x+2) = 0 memberikan dua pembuat nol: x = 2 dan x = -2."
+                }
+            ]
+        };
+
+        /* ==========================================================================
+           3. AUDIO ENGINE (Web Audio API - Direct Synth Sound Effects)
+           ========================================================================== */
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-status').innerText = soundEnabled ? 'ON' : 'OFF';
+        }
+
+        function playSFX(type) {
+            if (!soundEnabled) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'incorrect') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.setValueAtTime(130, now + 0.1);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'victory') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.12);
+                osc.frequency.setValueAtTime(783.99, now + 0.24);
+                osc.frequency.setValueAtTime(1046.50, now + 0.36);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            }
+        }
+
+        /* ==========================================================================
+           4. NAVIGATION & SCREEN MANAGEMENT
+           ========================================================================== */
+        const screens = [
+            'screen-welcome',
+            'screen-identity',
+            'screen-arena',
+            'screen-checkpoint',
+            'screen-break',
+            'screen-final',
+            'screen-dashboard'
+        ];
+
+        function goToScreen(screenId) {
+            screens.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+
+            const hud = document.getElementById('hud');
+            if (screenId === 'screen-welcome' || screenId === 'screen-identity') {
+                hud.classList.add('hidden');
+            } else {
+                hud.classList.remove('hidden');
+            }
+        }
+
+        /* ==========================================================================
+           5. GAME LOGIC & FLOW
+           ========================================================================== */
+        function submitIdentity(e) {
+            e.preventDefault();
+            playSFX('click');
+
+            player.nama = document.getElementById('input-nama').value.trim();
+            player.kelas = document.getElementById('input-kelas').value.trim();
+            player.absen = document.getElementById('input-absen').value.trim();
+            player.startTime = new Date();
+
+            document.getElementById('hud-user').innerText = `${player.nama} (${player.kelas})`;
+            
+            // Start Mission 1
+            currentMissionIdx = 0;
+            startMission(0);
+        }
+
+        const missionsConfig = [
+            { id: "m1", tag: "MISSION 1", title: "FUNCTION RECALL", key: "m1", count: 5 },
+            { id: "m2", tag: "MISSION 2", title: "FUNCTION DETECTIVE", key: "m2", count: 10 },
+            { id: "m3", tag: "MISSION 3", title: "DOMAIN HUNTER", key: "m3", count: 8 },
+            { id: "m4", tag: "MISSION 4", title: "FUNCTION CLASSIFIER", key: "m4", count: 8 },
+            { id: "boss", tag: "FINAL BATTLE", title: "⚔️ FUNCTION BOSS BATTLE", key: "boss", count: 10 }
+        ];
+
+        function shuffleArray(arr) {
+            return [...arr].sort(() => Math.random() - 0.5);
+        }
+
+        function startMission(mIdx) {
+            currentMissionIdx = mIdx;
+            currentQuestionIdx = 0;
+            const config = missionsConfig[mIdx];
+
+            // Acak & Ambil sejumlah soal dari bank soal
+            const rawQuestions = QUESTION_BANK[config.key];
+            activeQuestions = shuffleArray(rawQuestions).slice(0, config.count);
+
+            document.getElementById('mission-tag').innerText = config.tag;
+            document.getElementById('mission-title').innerText = config.title;
+
+            goToScreen('screen-arena');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            const q = activeQuestions[currentQuestionIdx];
+            const qBox = document.getElementById('question-box');
+            const feedbackBox = document.getElementById('feedback-box');
+            const diffBadge = document.getElementById('difficulty-badge');
+            
+            feedbackBox.classList.add('hidden');
+            qBox.classList.remove('animate-shake');
+
+            // Set difficulty badge if Boss Battle
+            if (currentMissionIdx === 4) {
+                diffBadge.classList.remove('hidden');
+                diffBadge.innerText = `${q.diff} | ⏱️ ${q.time}s | +${q.xpVal} XP`;
+                startTimer(q.time);
+            } else {
+                diffBadge.classList.add('hidden');
+            }
+
+            document.getElementById('question-text').innerText = `${currentQuestionIdx + 1}. ${q.text}`;
+
+            // Render Options (dengan pengacakan opsi untuk mencegah menyalin)
+            const optsContainer = document.getElementById('options-container');
+            optsContainer.innerHTML = '';
+
+            let indexedOpts = q.options.map((opt, i) => ({ text: opt, originalIdx: i }));
+            // Jika bukan True/False (Mission 2), acak pilihan jawaban
+            if (q.options.length > 2) {
+                indexedOpts = shuffleArray(indexedOpts);
+            }
+
+            indexedOpts.forEach((optObj) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full p-4 bg-arena-bg hover:bg-arena-card border border-arena-border hover:border-electric-blue rounded-2xl text-left text-sm font-semibold transition flex items-center justify-between group";
+                btn.innerHTML = `<span>${optObj.text}</span> <span class="text-electric-blue opacity-0 group-hover:opacity-100 transition">➔</span>`;
+                btn.onclick = () => checkAnswer(optObj.originalIdx, q.correct, q.feedback, q.xpVal || 100);
+                optsContainer.appendChild(btn);
+            });
+
+            updateHUD();
+        }
+
+        function startTimer(seconds) {
+            timeLeft = seconds;
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    playSFX('incorrect');
+                    handleAnswerResult(false, 0, "⏰ Waktu habis! Tetap semangat untuk soal berikutnya.");
+                }
+            }, 1000);
+        }
+
+        function checkAnswer(selectedIdx, correctIdx, feedbackText, baseXP) {
+            if (timerInterval) clearInterval(timerInterval);
+
+            const isCorrect = (selectedIdx === correctIdx);
+            handleAnswerResult(isCorrect, baseXP, feedbackText);
+        }
+
+        function handleAnswerResult(isCorrect, baseXP, feedbackText) {
+            player.totalAnswered++;
+            
+            const feedbackBox = document.getElementById('feedback-box');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackDetail = document.getElementById('feedback-text');
+            const optsContainer = document.getElementById('options-container');
+
+            // Disable klick tombol opsi
+            Array.from(optsContainer.children).forEach(btn => btn.disabled = true);
+
+            if (isCorrect) {
+                playSFX('correct');
+                confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+                
+                player.totalCorrect++;
+                player.streak++;
+
+                // Hitung Bonus Streak
+                let streakBonus = 0;
+                if (player.streak >= 5) streakBonus = 100;
+                else if (player.streak >= 3) streakBonus = 50;
+
+                const earnedXP = baseXP + streakBonus;
+                player.xp += earnedXP;
+
+                feedbackBox.className = "mt-6 p-4 rounded-2xl border bg-emerald-950/40 border-emerald-500/50 text-emerald-300";
+                feedbackTitle.innerText = `✅ CORRECT! (+${earnedXP} XP ${streakBonus ? '🔥 Streak Bonus!' : ''})`;
+            } else {
+                playSFX('incorrect');
+                document.getElementById('question-box').classList.add('animate-shake');
+                
+                player.streak = 0; // Reset streak
+                player.xp = Math.max(0, player.xp - 10); // Penalti kecil agar tidak menurunkan motivasi
+
+                feedbackBox.className = "mt-6 p-4 rounded-2xl border bg-rose-950/40 border-rose-500/50 text-rose-300";
+                feedbackTitle.innerText = "❌ INCORRECT";
+            }
+
+            feedbackDetail.innerText = feedbackText;
+            feedbackBox.classList.remove('hidden');
+
+            updateHUD();
+        }
+
+        function nextQuestion() {
+            currentQuestionIdx++;
+            if (currentQuestionIdx < activeQuestions.length) {
+                renderQuestion();
+            } else {
+                // Mission selesai
+                playSFX('victory');
+                
+                // Cek Checkpoint / Transisi
+                if (currentMissionIdx === 1) { // Setelah Mission 2
+                    sendCheckpointToSheets("CHECKPOINT_1");
+                    showCheckpointScreen();
+                } else if (currentMissionIdx === 3) { // Setelah Mission 4
+                    sendCheckpointToSheets("CHECKPOINT_2");
+                    showCheckpointScreen();
+                } else if (currentMissionIdx === 4) { // Setelah Boss Battle
+                    finishQuest();
+                } else {
+                    currentMissionIdx++;
+                    startMission(currentMissionIdx);
+                }
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-xp').innerText = player.xp;
+            document.getElementById('hud-streak').innerText = player.streak;
+
+            const acc = player.totalAnswered > 0 ? Math.round((player.totalCorrect / player.totalAnswered) * 100) : 100;
+            document.getElementById('hud-acc').innerText = `${acc}%`;
+
+            // Hitung total estimasi soal (41 soal total)
+            const totalEstQuestions = 41;
+            const progressPct = Math.min(100, Math.round((player.totalAnswered / totalEstQuestions) * 100));
+            document.getElementById('hud-progress').style.width = `${progressPct}%`;
+        }
+
+        /* ==========================================================================
+           6. CHECKPOINT & BREAK SYSTEM
+           ========================================================================== */
+        function showCheckpointScreen() {
+            document.getElementById('cp-xp').innerText = player.xp;
+            const acc = Math.round((player.totalCorrect / player.totalAnswered) * 100);
+            document.getElementById('cp-acc').innerText = `${acc}%`;
+            document.getElementById('cp-count').innerText = `${player.totalAnswered} Soal`;
+
+            goToScreen('screen-checkpoint');
+        }
+
+        function continueQuestFromCP() {
+            playSFX('click');
+            currentMissionIdx++;
+            startMission(currentMissionIdx);
+        }
+
+        function enterBreakMode() {
+            playSFX('click');
+            goToScreen('screen-break');
+        }
+
+        /* ==========================================================================
+           7. FINAL RESULT & RANKING SYSTEM
+           ========================================================================== */
+        function finishQuest() {
+            const acc = Math.round((player.totalCorrect / player.totalAnswered) * 100);
+            const durationMs = new Date() - player.startTime;
+            const durationMin = Math.floor(durationMs / 60000);
+            const durationSec = Math.floor((durationMs % 60000) / 1000);
+            const timeStr = `${durationMin}m ${durationSec}s`;
+
+            // Tentukan Rank
+            let rank = "FUNCTION BEGINNER";
+            let badge = "🛡️";
+
+            if (player.xp >= 3000) {
+                rank = "FUNCTION MASTER";
+                badge = "👑";
+            } else if (player.xp >= 2000) {
+                rank = "FUNCTION EXPERT";
+                badge = "🏆";
+            } else if (player.xp >= 1000) {
+                rank = "FUNCTION CHALLENGER";
+                badge = "⚡";
+            }
+
+            document.getElementById('final-rank').innerText = rank;
+            document.getElementById('final-badge').innerText = badge;
+            document.getElementById('final-user-info').innerText = `${player.nama} — Kelas ${player.kelas} (No. ${player.absen})`;
+            document.getElementById('final-xp').innerText = player.xp;
+            document.getElementById('final-acc').innerText = `${acc}%`;
+            document.getElementById('final-correct').innerText = `${player.totalCorrect}/${player.totalAnswered}`;
+            document.getElementById('final-time').innerText = timeStr;
+
+            // Kirim Data Akhir ke Google Sheets
+            sendCheckpointToSheets("FINAL_COMPLETE", rank, timeStr);
+
+            // Simpan ke LocalStorage untuk Dashboard Guru lokal
+            saveLocalResult({
+                nama: player.nama,
+                kelas: player.kelas,
+                absen: player.absen,
+                xp: player.xp,
+                acc: acc,
+                rank: rank,
+                time: timeStr,
+                timestamp: new Date().toLocaleString()
+            });
+
+            goToScreen('screen-final');
+            confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+        }
+
+        function restartGame() {
+            playSFX('click');
+            player.xp = 0;
+            player.streak = 0;
+            player.totalCorrect = 0;
+            player.totalAnswered = 0;
+            goToScreen('screen-welcome');
+        }
+
+        /* ==========================================================================
+           8. GOOGLE SHEETS & LOCAL DASHBOARD INTEGRATION
+           ========================================================================== */
+        function sendCheckpointToSheets(checkpointType, rankStr = "-", timeStr = "-") {
+            const acc = player.totalAnswered > 0 ? Math.round((player.totalCorrect / player.totalAnswered) * 100) : 100;
+            const payload = {
+                timestamp: new Date().toISOString(),
+                nama: player.nama,
+                kelas: player.kelas,
+                absen: player.absen,
+                mission: missionsConfig[currentMissionIdx].title,
+                checkpoint: checkpointType,
+                xp: player.xp,
+                totalCorrect: player.totalCorrect,
+                totalQuestions: player.totalAnswered,
+                accuracy: acc,
+                timeSpent: timeStr,
+                finalRank: rankStr
+            };
+
+            // Kirim via fetch ke Google Apps Script Web App
+            if (GOOGLE_SCRIPT_URL) {
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).catch(err => console.log("Sheet Sync Error:", err));
+            }
+        }
+
+        function saveLocalResult(data) {
+            let history = JSON.parse(localStorage.getItem('fq_results') || '[]');
+            history.push(data);
+            localStorage.setItem('fq_results', JSON.stringify(history));
+        }
+
+        function openTeacherDashboard() {
+            playSFX('click');
+            const history = JSON.parse(localStorage.getItem('fq_results') || '[]');
+            
+            document.getElementById('dash-total-siswa').innerText = history.length;
+            
+            if (history.length > 0) {
+                const avgXP = Math.round(history.reduce((a, b) => a + b.xp, 0) / history.length);
+                const avgAcc = Math.round(history.reduce((a, b) => a + b.acc, 0) / history.length);
+                
+                // Urutkan berdasarkan XP tertinggi
+                history.sort((a, b) => b.xp - a.xp);
+                
+                document.getElementById('dash-avg-xp').innerText = avgXP;
+                document.getElementById('dash-avg-acc').innerText = `${avgAcc}%`;
+                document.getElementById('dash-top-score').innerText = `${history[0].nama} (${history[0].xp} XP)`;
+
+                const tbody = document.getElementById('leaderboard-body');
+                tbody.innerHTML = history.map((item, i) => `
+                    <tr class="border-b border-arena-border/50 hover:bg-arena-card/50 transition">
+                        <td class="p-3 font-bold text-electric-blue">${i + 1}</td>
+                        <td class="p-3 font-semibold text-white">${item.nama}</td>
+                        <td class="p-3">${item.kelas}</td>
+                        <td class="p-3 font-orbitron text-neon-yellow font-bold">${item.xp}</td>
+                        <td class="p-3 text-emerald-glow">${item.acc}%</td>
+                        <td class="p-3"><span class="px-2 py-0.5 bg-arena-border text-[10px] font-bold rounded-md">${item.rank}</span></td>
+                    </tr>
+                `).join('');
+            }
+
+            goToScreen('screen-dashboard');
+        }
+
+        function closeTeacherDashboard() {
+            playSFX('click');
+            if (player.nama) {
+                goToScreen('screen-arena');
+            } else {
+                goToScreen('screen-welcome');
+            }
+        }
+    </script>
+</body>
+</html>
